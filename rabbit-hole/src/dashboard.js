@@ -4,20 +4,21 @@ import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
 import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
-import CardMedia from '@material-ui/core/CardMedia';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Grid from '@material-ui/core/Grid';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import Container from '@material-ui/core/Container';
 import SearchIcon from '@material-ui/icons/Search';
-import { fade, makeStyles } from '@material-ui/core/styles';
+import { fade, withStyles } from '@material-ui/core/styles';
 import InputBase from '@material-ui/core/InputBase';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import TrendingUpIcon from '@material-ui/icons/TrendingUp';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import CardActionArea from '@material-ui/core/CardActionArea';
 
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = theme => ({
   appbar: {
     alignItems: 'center',
   },
@@ -31,16 +32,18 @@ const useStyles = makeStyles((theme) => ({
     paddingTop: theme.spacing(8),
     paddingBottom: theme.spacing(8),
   },
+  loading: {
+    position: 'relative', 
+  },
+  loadingIcon: {
+    marginTop: '20%',
+    marginLeft: '48%',
+  },
   card: {
     height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  cardMedia: {
-    paddingTop: '56.25%', // 16:9
   },
   cardContent: {
-    flexGrow: 0,
+    flexGrow: 1,
   },
   search: {
     position: 'relative',
@@ -79,85 +82,218 @@ const useStyles = makeStyles((theme) => ({
       width: '30ch',
     },
   },
-}));
+});
 
-const cards = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const apiRequest = url => fetch(url).then(response => response.json())
 
-export default function Dashboard() {
-  const classes = useStyles();
+const apiRequestTitle = () => {
+  var url = "https://en.wikipedia.org/w/api.php"; 
+  var params = {
+    action: "query",
+    format: "json",
+    list: "random",
+    rnlimit: "12",
+    rnnamespace: "0",
+  };
 
-  return (
-    <React.Fragment>
-      <CssBaseline />
-      <AppBar className={classes.appbar} position="relative">
-        <Toolbar>
-          <Button
-            variant="contained"
-            color="default"
-            className={classes.button}
-            startIcon={<RefreshIcon />}
-          >
-            &nbsp;Random&nbsp;
-          </Button>
-          <div className={classes.search}>
-            <div className={classes.searchIcon}>
-              <SearchIcon />
-            </div>
+  url = url + "?origin=*";
+  Object.keys(params).forEach(function(key){url += "&" + key + "=" + params[key];});
+  
+  return apiRequest(url).then(response => {
+    var titles = ""
+    var randoms = response.query.random;
+    for (var r in randoms) {
+      if (r != 0) {
+        titles = titles.concat("|");
+      }
+      titles = titles.concat(randoms[r].title);
+    }
+    return {
+      titles: titles,
+    };
+  });
+};
 
-            <InputBase
-              placeholder="Search…"
-              classes={{
-                root: classes.inputRoot,
-                input: classes.inputInput,
-              }}
-              inputProps={{ 'aria-label': 'search' }}
-            />
-          </div>
-          <Button
-            variant="contained"
-            color="default"
-            className={classes.button}
-            startIcon={<TrendingUpIcon />}
-          >
-            Trending
-          </Button>
-        </Toolbar>
-      </AppBar>
-      <main>
-        {/* Hero unit */}
-        <Container className={classes.cardGrid} maxWidth="md">
-          {/* End hero unit */}
-          <Grid container spacing={4}>
-            {cards.map((card) => (
-              <Grid item key={card} xs={12} sm={6} md={4}>
-                <Card className={classes.card}>
-                  <CardMedia
-                    className={classes.cardMedia}
-                    image="https://source.unsplash.com/random"
-                    title="Image title"
-                  />
-                  <CardContent className={classes.cardContent}>
-                    <Typography gutterBottom variant="h5" component="h2">
-                      Heading
-                    </Typography>
-                    <Typography>
-                      This is a media card. You can use this section to describe the content.
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Button size="small" color="primary">
-                      View
-                    </Button>
-                    <Button size="small" color="primary">
-                      Edit
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </main>
-    </React.Fragment>
-  );
+const apiRequestExtracts = (titles) => {
+  console.log(titles)
+  var url = "https://en.wikipedia.org/w/api.php";
+  var params = {
+    action: "query",
+    format: "json",
+    titles: titles,
+    prop: "extracts",
+    exchars: "175",
+    explaintext: "true",
+    exlimit: "12",
+    exintro: "true",
+  }
+
+  url = url + "?origin=*";
+  Object.keys(params).forEach(function(key){url += "&" + key + "=" + params[key];});
+
+  return apiRequest(url).then(response => {
+    var cards = [];
+    var descriptions = response.query.pages;
+    var index = 0;
+    for (const [key, value] of Object.entries(descriptions)) {
+      var title = value.title;
+      var url = "https://en.wikipedia.org/wiki/".concat(title.split(' ').join('_'));
+      if (title.length > 18) {
+        title = title.substring(0, 20).concat("...")
+      }
+      var extract = value.extract;
+      cards.push([title, url, extract]);
+      index = index + 1;
+    }
+    return {
+      cards: cards,
+    };
+  });
 }
+
+
+
+class Dashboard extends React.Component {
+  constructor(props) {
+    super (props);
+    this.state = {
+      loading: false,
+      cards: [],
+      titles: "",
+    }
+  }
+
+  componentDidMount() {
+    this.setState({loading: true})
+    Promise.all([apiRequestTitle()])
+      .then(results => {
+        this.setState({titles: results[0].titles}, () => console.log(this.state.titles));
+        Promise.all([apiRequestExtracts(this.state.titles)])
+        .then(results => {
+          this.setState({cards: results[0].cards, loading: false,}, () => console.log(this.state.cards));
+        });
+      });
+  }
+
+  render() {
+    const { classes } = this.props;
+    if (this.state.loading) {
+      return (
+        <React.Fragment>
+        <CssBaseline />
+        <AppBar className={classes.appbar} position="relative">
+          <Toolbar>
+            <Button
+              variant="contained"
+              color="default"
+              className={classes.button}
+              startIcon={<RefreshIcon />}
+            >
+              &nbsp;Random&nbsp;
+            </Button>
+            <div className={classes.search}>
+              <div className={classes.searchIcon}>
+                <SearchIcon />
+              </div>
+
+              <InputBase
+                placeholder="Search…"
+                classes={{
+                  root: classes.inputRoot,
+                  input: classes.inputInput,
+                }}
+                inputProps={{ 'aria-label': 'search' }}
+              />
+            </div>
+            <Button
+              variant="contained"
+              color="default"
+              className={classes.button}
+              startIcon={<TrendingUpIcon />}
+            >
+              Trending
+            </Button>
+          </Toolbar>
+        </AppBar>
+        <main>
+          <Container className={classes.loading} maxWidth="lg">
+            <div><CircularProgress className={classes.loadingIcon}  size={40}/></div>
+            
+          </Container>
+        </main>
+      </React.Fragment>
+      )
+    }
+    return (
+      <React.Fragment>
+        <CssBaseline />
+        <AppBar className={classes.appbar} position="relative">
+          <Toolbar>
+            <Button
+              variant="contained"
+              color="default"
+              className={classes.button}
+              startIcon={<RefreshIcon />}
+            >
+              &nbsp;Random&nbsp;
+            </Button>
+            <div className={classes.search}>
+              <div className={classes.searchIcon}>
+                <SearchIcon />
+              </div>
+
+              <InputBase
+                placeholder="Search…"
+                classes={{
+                  root: classes.inputRoot,
+                  input: classes.inputInput,
+                }}
+                inputProps={{ 'aria-label': 'search' }}
+              />
+            </div>
+            <Button
+              variant="contained"
+              color="default"
+              className={classes.button}
+              startIcon={<TrendingUpIcon />}
+            >
+              Trending
+            </Button>
+          </Toolbar>
+        </AppBar>
+        <main>
+          <Container className={classes.cardGrid} maxWidth="lg">
+            <Grid container spacing={3}>
+              {this.state.cards.map((card) => (
+                <Grid item key={card} xs={3}>
+                  <Card className={classes.card} onClick={ () => window.open( card[1] )}>
+                    <CardActionArea>
+                      <div>
+                      <CardContent className={classes.cardContent}>
+                        <Typography gutterBottom variant="h5" component="h2">
+                          {card[0]}
+                        </Typography>
+                        <Typography>
+                          {card[2]}
+                        </Typography>
+                      </CardContent>
+                      
+                      <CardActions>
+                      <Button size="small" color="primary" onClick={ () => window.open( card[1] )}>
+                          Wiki
+                        </Button>
+                      </CardActions>
+                      </div>
+                    </CardActionArea>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </main>
+      </React.Fragment>
+    );
+  }
+}
+
+export default withStyles(useStyles)(Dashboard);
