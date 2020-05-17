@@ -6,7 +6,7 @@ Check out my video demo by clicking on this image:
 
 ## Inspiration
 
-My internship this summer is in React.JS, so I wanted to throw together a simple and visually appealing web application to learn some basic concepts! I love wasting my time down rabbit holes browsing through Wikipedia articles, and I wanted to build a nice UI to accompany that process!
+I love wasting my time down rabbit holes browsing through Wikipedia articles, and I wanted to build a nice UI to accompany that process!
 
 ## What it does
 
