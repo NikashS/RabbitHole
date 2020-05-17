@@ -1,7 +1,8 @@
 # RabbitHole
 Get lost in Wikipedia rabbit holes with RabbitHole.
 
-[![Demo](demo.png)](https://www.youtube.com/watch?v=KOxbO0EI4MA "Demo")
+Check out my video demo by clicking on this image:
+[![Demo](demo.png)](https://www.youtube.com/watch?v=ZCCLfLj9jkU "Demo")
 
 ## Inspiration
 
