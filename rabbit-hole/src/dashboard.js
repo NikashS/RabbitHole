@@ -86,13 +86,13 @@ const useStyles = theme => ({
 
 const apiRequest = url => fetch(url).then(response => response.json())
 
-const apiRequestTitle = () => {
+const apiRequestRandomTitle = () => {
   var url = "https://en.wikipedia.org/w/api.php"; 
   var params = {
     action: "query",
     format: "json",
     list: "random",
-    rnlimit: "12",
+    rnlimit: "8",
     rnnamespace: "0",
   };
 
@@ -114,8 +114,42 @@ const apiRequestTitle = () => {
   });
 };
 
+const apiRequestTitle = (title) => {
+  var url = "https://en.wikipedia.org/w/api.php"; 
+  var params = {
+    action: "query",
+    format: "json",
+    prop: "links",
+    titles: title,
+    plnamespace: "0",
+    pllimit: "500",
+  };
+
+  url = url + "?origin=*";
+  Object.keys(params).forEach(function(key){url += "&" + key + "=" + params[key];});
+  
+  return apiRequest(url).then(response => {
+    console.log(response)
+    var titles = "";
+    var temp;
+    var result = response.query.pages;
+    titles = titles.concat(title);
+
+    for (const [key, value] of Object.entries(result)) {
+      for (var i = 0; i < 7; i++) {
+        var index = Math.floor(Math.random() * value.links.length); 
+        titles = titles.concat("|");
+        titles = titles.concat(value.links[index].title);
+      }
+    }
+
+    return {
+      titles: titles,
+    };
+  });
+};
+
 const apiRequestExtracts = (titles) => {
-  console.log(titles)
   var url = "https://en.wikipedia.org/w/api.php";
   var params = {
     action: "query",
@@ -124,8 +158,9 @@ const apiRequestExtracts = (titles) => {
     prop: "extracts",
     exchars: "175",
     explaintext: "true",
-    exlimit: "12",
+    exlimit: "8",
     exintro: "true",
+
   }
 
   url = url + "?origin=*";
@@ -142,7 +177,15 @@ const apiRequestExtracts = (titles) => {
         title = title.substring(0, 20).concat("...")
       }
       var extract = value.extract;
-      cards.push([title, url, extract]);
+      if (extract.length == 3) {
+        extract = "[No description found on Wikipedia]";
+      }
+      if (title.toLowerCase() == titles.substring(0, titles.indexOf('|'))) {
+        cards.unshift([title, url, extract])
+      }
+      else {
+        cards.push([title, url, extract]);
+      }
       index = index + 1;
     }
     return {
@@ -160,12 +203,17 @@ class Dashboard extends React.Component {
       loading: false,
       cards: [],
       titles: "",
+      base: "",
     }
+    this.keyPress = this.keyPress.bind(this);
+    this.handleRandom = this.handleRandom.bind(this);
   }
 
-  componentDidMount() {
+  handleRandom() {
+    console.log("here")
     this.setState({loading: true})
-    Promise.all([apiRequestTitle()])
+    if (this.state.base == "") {
+      Promise.all([apiRequestRandomTitle()])
       .then(results => {
         this.setState({titles: results[0].titles}, () => console.log(this.state.titles));
         Promise.all([apiRequestExtracts(this.state.titles)])
@@ -173,7 +221,30 @@ class Dashboard extends React.Component {
           this.setState({cards: results[0].cards, loading: false,}, () => console.log(this.state.cards));
         });
       });
+    }
   }
+
+  componentDidMount() {
+    this.handleRandom();
+    
+  }
+
+  async keyPress(e){
+    if(e.keyCode == 13){
+
+      await this.setState({base: e.target.value}, () => console.log(this.state.base));
+      this.setState({loading: true}, () => console.log(this.state.loading));
+      Promise.all([apiRequestTitle(this.state.base)])
+      .then(results => {
+        this.setState({titles: results[0].titles}, () => console.log(this.state.titles));
+        Promise.all([apiRequestExtracts(this.state.titles)])
+        .then(results => {
+          this.setState({cards: results[0].cards, loading: false,}, () => console.log(this.state.cards));
+        });
+      });
+      
+    }
+ }
 
   render() {
     const { classes } = this.props;
@@ -184,6 +255,7 @@ class Dashboard extends React.Component {
         <AppBar className={classes.appbar} position="relative">
           <Toolbar>
             <Button
+              onClick={this.handleRandom}
               variant="contained"
               color="default"
               className={classes.button}
@@ -198,6 +270,7 @@ class Dashboard extends React.Component {
 
               <InputBase
                 placeholder="Search…"
+                onKeyDown={this.keyPress}
                 classes={{
                   root: classes.inputRoot,
                   input: classes.inputInput,
@@ -230,6 +303,7 @@ class Dashboard extends React.Component {
         <AppBar className={classes.appbar} position="relative">
           <Toolbar>
             <Button
+              onClick={this.handleRandom}
               variant="contained"
               color="default"
               className={classes.button}
@@ -244,6 +318,7 @@ class Dashboard extends React.Component {
 
               <InputBase
                 placeholder="Search…"
+                onKeyDown={this.keyPress}
                 classes={{
                   root: classes.inputRoot,
                   input: classes.inputInput,
