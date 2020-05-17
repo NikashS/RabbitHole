@@ -13,10 +13,14 @@ import SearchIcon from '@material-ui/icons/Search';
 import { fade, withStyles } from '@material-ui/core/styles';
 import InputBase from '@material-ui/core/InputBase';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import TrendingUpIcon from '@material-ui/icons/TrendingUp';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CardActionArea from '@material-ui/core/CardActionArea';
-
+import BookmarkBorderIcon from '@material-ui/icons/BookmarkBorder';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 const useStyles = theme => ({
   appbar: {
@@ -194,6 +198,44 @@ const apiRequestExtracts = (titles) => {
   });
 }
 
+export function AlertDialog() {
+  const [open, setOpen] = React.useState(false);
+
+  const bookmarkCode = "javascript:(function(){var wiki=window.location.href.split('/').slice(-1)[0];var url=\"http://localhost:3000/\".concat(wiki);window.open(url);})();"
+
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  return (
+    <div>
+      <Button color="default" variant="contained" startIcon={<BookmarkBorderIcon />} onClick={handleClickOpen}>
+        Bookmark
+      </Button>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Bookmark me to access directly from Wikipedia!"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Right click on your bookmarks bar and click "Add Page...". Give your bookmark a name, and copy the following code into the URL field. Then, you're set!
+          </DialogContentText>
+          <DialogContentText id="alert-dialog-description">
+           {bookmarkCode}
+          </DialogContentText>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 
 
 class Dashboard extends React.Component {
@@ -207,9 +249,10 @@ class Dashboard extends React.Component {
     }
     this.keyPress = this.keyPress.bind(this);
     this.handleRandom = this.handleRandom.bind(this);
+    this.handleSpecific = this.handleSpecific.bind(this);
   }
 
-  handleRandom() {
+  async handleRandom() {
     console.log("here")
     this.setState({loading: true})
     if (this.state.base == "") {
@@ -224,15 +267,8 @@ class Dashboard extends React.Component {
     }
   }
 
-  componentDidMount() {
-    this.handleRandom();
-    
-  }
-
-  async keyPress(e){
-    if(e.keyCode == 13){
-
-      await this.setState({base: e.target.value}, () => console.log(this.state.base));
+  async handleSpecific(base) {
+    await this.setState({base: base}, () => console.log(this.state.base));
       this.setState({loading: true}, () => console.log(this.state.loading));
       Promise.all([apiRequestTitle(this.state.base)])
       .then(results => {
@@ -242,7 +278,27 @@ class Dashboard extends React.Component {
           this.setState({cards: results[0].cards, loading: false,}, () => console.log(this.state.cards));
         });
       });
-      
+  }
+
+  async handleClick(title, url) {
+    window.open( url );
+    this.handleSpecific(title);
+  }
+
+  componentDidMount() {
+    var openedWith = window.location.href.split('/').slice(-1)[0];
+    if (openedWith == "") {
+      this.handleRandom();
+    }
+    else {
+      this.handleSpecific(openedWith);
+    }
+    
+  }
+
+  async keyPress(e){
+    if(e.keyCode == 13){
+      this.handleSpecific(e.target.value);
     }
  }
 
@@ -257,7 +313,7 @@ class Dashboard extends React.Component {
             <Button
               onClick={this.handleRandom}
               variant="contained"
-              color="default"
+              color="secondary"
               className={classes.button}
               startIcon={<RefreshIcon />}
             >
@@ -278,14 +334,7 @@ class Dashboard extends React.Component {
                 inputProps={{ 'aria-label': 'search' }}
               />
             </div>
-            <Button
-              variant="contained"
-              color="default"
-              className={classes.button}
-              startIcon={<TrendingUpIcon />}
-            >
-              Trending
-            </Button>
+            <AlertDialog></AlertDialog>
           </Toolbar>
         </AppBar>
         <main>
@@ -305,7 +354,7 @@ class Dashboard extends React.Component {
             <Button
               onClick={this.handleRandom}
               variant="contained"
-              color="default"
+              color="secondary"
               className={classes.button}
               startIcon={<RefreshIcon />}
             >
@@ -326,14 +375,7 @@ class Dashboard extends React.Component {
                 inputProps={{ 'aria-label': 'search' }}
               />
             </div>
-            <Button
-              variant="contained"
-              color="default"
-              className={classes.button}
-              startIcon={<TrendingUpIcon />}
-            >
-              Trending
-            </Button>
+            <AlertDialog></AlertDialog>
           </Toolbar>
         </AppBar>
         <main>
@@ -341,7 +383,7 @@ class Dashboard extends React.Component {
             <Grid container spacing={3}>
               {this.state.cards.map((card) => (
                 <Grid item key={card} xs={3}>
-                  <Card className={classes.card} onClick={ () => window.open( card[1] )}>
+                  <Card className={classes.card} onClick={() => this.handleClick(card[0], card[1]) }>
                     <CardActionArea>
                       <div>
                       <CardContent className={classes.cardContent}>
@@ -354,7 +396,7 @@ class Dashboard extends React.Component {
                       </CardContent>
                       
                       <CardActions>
-                      <Button size="small" color="primary" onClick={ () => window.open( card[1] )}>
+                      <Button size="small" color="primary" onClick={ () => this.handleClick(card[0], card[1])}>
                           Wiki
                         </Button>
                       </CardActions>
@@ -365,7 +407,10 @@ class Dashboard extends React.Component {
               ))}
             </Grid>
           </Container>
+          
         </main>
+        
+        
       </React.Fragment>
     );
   }
