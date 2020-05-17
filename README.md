@@ -1,6 +1,8 @@
 # RabbitHole
 Get lost in Wikipedia rabbit holes with RabbitHole.
 
+[![Demo](demo.png)](https://www.youtube.com/watch?v=KOxbO0EI4MA "Demo")
+
 ## Inspiration
 
 My internship this summer is in React.JS, so I wanted to throw together a simple and visually appealing web application to learn some basic concepts! I love wasting my time down rabbit holes browsing through Wikipedia articles, and I wanted to build a nice UI to accompany that process!
