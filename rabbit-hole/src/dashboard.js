@@ -17,7 +17,6 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import CardActionArea from '@material-ui/core/CardActionArea';
 import BookmarkBorderIcon from '@material-ui/icons/BookmarkBorder';
 import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
@@ -107,7 +106,7 @@ const apiRequestRandomTitle = () => {
     var titles = ""
     var randoms = response.query.random;
     for (var r in randoms) {
-      if (r != 0) {
+      if (r !== 0) {
         titles = titles.concat("|");
       }
       titles = titles.concat(randoms[r].title);
@@ -135,7 +134,6 @@ const apiRequestTitle = (title) => {
   return apiRequest(url).then(response => {
     console.log(response)
     var titles = "";
-    var temp;
     var result = response.query.pages;
     titles = titles.concat(title);
 
@@ -181,10 +179,10 @@ const apiRequestExtracts = (titles) => {
         title = title.substring(0, 20).concat("...")
       }
       var extract = value.extract;
-      if (extract.length == 3) {
+      if (extract.length === 3) {
         extract = "[No description found on Wikipedia]";
       }
-      if (title.toLowerCase() == titles.substring(0, titles.indexOf('|'))) {
+      if (title.toLowerCase() === titles.substring(0, titles.indexOf('|'))) {
         cards.unshift([title, url, extract])
       }
       else {
@@ -255,7 +253,7 @@ class Dashboard extends React.Component {
   async handleRandom() {
     console.log("here")
     this.setState({loading: true})
-    if (this.state.base == "") {
+    if (this.state.base === "") {
       Promise.all([apiRequestRandomTitle()])
       .then(results => {
         this.setState({titles: results[0].titles}, () => console.log(this.state.titles));
@@ -287,7 +285,7 @@ class Dashboard extends React.Component {
 
   componentDidMount() {
     var openedWith = window.location.href.split('/').slice(-1)[0];
-    if (openedWith == "") {
+    if (openedWith === "") {
       this.handleRandom();
     }
     else {
@@ -297,7 +295,7 @@ class Dashboard extends React.Component {
   }
 
   async keyPress(e){
-    if(e.keyCode == 13){
+    if(e.keyCode === 13){
       this.handleSpecific(e.target.value);
     }
  }
